@@ -1,0 +1,29 @@
+trigger:
+- main
+
+pool:
+  name: 'Default'
+
+stages:
+- stage: CI
+  displayName: 'CI - Build'
+  jobs:
+  - job: Build
+    steps:
+    - checkout: self
+
+    - powershell: |
+        Write-Host "Building application..."
+        Write-Host "CI completed successfully!"
+      displayName: 'Build Application'
+
+- stage: CD
+  displayName: 'CD - Deploy'
+  dependsOn: CI
+  jobs:
+  - job: Deploy
+    steps:
+    - powershell: |
+        Write-Host "Deploying application..."
+        Write-Host "Application deployed successfully!"
+      displayName: 'Deploy Application'
