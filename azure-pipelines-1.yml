@@ -1,0 +1,43 @@
+trigger:
+- main
+
+pool:
+  name: 'Default'
+
+steps:
+- checkout: self
+  displayName: 'Checkout Calculator Source'
+
+- powershell: |
+    Write-Host "Validating calculator application..."
+
+    if (Test-Path "calculator.py") {
+        Write-Host "calculator.py found"
+    }
+    else {
+        Write-Error "calculator.py not found"
+        exit 1
+    }
+  displayName: 'Validate Application'
+
+- powershell: |
+    New-Item -ItemType Directory -Force `
+      -Path "$(Build.ArtifactStagingDirectory)\calculator"
+
+    Copy-Item "calculator.py" `
+      "$(Build.ArtifactStagingDirectory)\calculator\"
+
+    Compress-Archive `
+      -Path "$(Build.ArtifactStagingDirectory)\calculator\*" `
+      -DestinationPath "$(Build.ArtifactStagingDirectory)\calculator.zip" `
+      -Force
+
+    Write-Host "Build package created."
+  displayName: 'Build Calculator Package'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'calculator-drop'
+    publishLocation: 'Container'
+  displayName: 'Publish Build Artifact'
