@@ -5,25 +5,87 @@ pool:
   name: 'Default'
 
 stages:
+
+# =====================
+# CI - BUILD
+# =====================
 - stage: CI
   displayName: 'CI - Build'
+
   jobs:
   - job: Build
+    displayName: 'Build Calculator'
+
     steps:
     - checkout: self
+      displayName: 'Checkout Source Code'
 
     - powershell: |
-        Write-Host "Building application..."
-        Write-Host "CI completed successfully!"
-      displayName: 'Build Application'
+        Write-Host "Checking application files..."
 
+        if (Test-Path "calculator.py") {
+            Write-Host "calculator.py found - validation successful"
+        }
+        else {
+            Write-Error "calculator.py not found"
+            exit 1
+        }
+      displayName: 'Validate Application'
+
+    - powershell: |
+        New-Item -ItemType Directory -Force `
+          -Path "$(Build.ArtifactStagingDirectory)\calculator"
+
+        Copy-Item "calculator.py" `
+          "$(Build.ArtifactStagingDirectory)\calculator\"
+
+        Compress-Archive `
+          -Path "$(Build.ArtifactStagingDirectory)\calculator\*" `
+          -DestinationPath "$(Build.ArtifactStagingDirectory)\calculator.zip" `
+          -Force
+
+        Write-Host "calculator.zip created successfully"
+      displayName: 'Create Build Package'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)\calculator.zip'
+        artifact: 'calculator-artifact'
+      displayName: 'Publish Artifact'
+
+
+# =====================
+# CD - DEPLOY
+# =====================
 - stage: CD
   displayName: 'CD - Deploy'
   dependsOn: CI
+  condition: succeeded()
+
   jobs:
   - job: Deploy
+    displayName: 'Deploy Calculator'
+
     steps:
+    - checkout: none
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifact: 'calculator-artifact'
+        path: '$(Pipeline.Workspace)\calculator-artifact'
+      displayName: 'Download Artifact'
+
     - powershell: |
-        Write-Host "Deploying application..."
-        Write-Host "Application deployed successfully!"
+        $deployPath = "C:\calculator-deployment"
+
+        New-Item -ItemType Directory -Force -Path $deployPath
+
+        Expand-Archive `
+          -Path "$(Pipeline.Workspace)\calculator-artifact\calculator.zip" `
+          -DestinationPath $deployPath `
+          -Force
+
+        Write-Host "Deployment completed successfully"
+
+        Get-ChildItem $deployPath
       displayName: 'Deploy Application'
