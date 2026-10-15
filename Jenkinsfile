@@ -2,21 +2,23 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                echo 'GitHub code downloaded successfully!'
-            }
-        }
-
         stage('Build') {
             steps {
-                echo 'Building application...'
+                echo 'Checking Python environment...'
+                sh 'python3 --version'
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Testing application...'
+                echo 'Running Python tests...'
+                sh 'python3 -m unittest discover -v'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Tests passed. Ready for deployment!'
             }
         }
     }
