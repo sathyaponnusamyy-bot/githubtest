@@ -41,6 +41,23 @@ PY
         archiveArtifacts artifacts: 'calculator.zip', fingerprint: true
     }
 }
+        
+stage('Docker Build') {
+    steps {
+        sh 'docker build -t sathya-calculator:latest .'
+    }
+}
+
+stage('Docker Deploy') {
+    steps {
+        sh '''
+            docker rm -f sathya-calculator || true
+            docker run -d --name sathya-calculator sathya-calculator:latest
+            docker ps -a --filter name=sathya-calculator
+        '''
+    }
+}
+
         stage('Deploy') {
             steps {
                 echo 'Tests passed. Ready for deployment!'
