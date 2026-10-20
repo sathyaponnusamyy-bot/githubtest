@@ -15,16 +15,32 @@ pipeline {
                 sh 'python3 -m unittest discover -v'
             }
         }
-        stage('Package') {
-            steps {
-                sh '''
-                   mkdir -p dist
-                   zip -j dist/calculator.zip calculator.py
-                '''
-                archiveArtifacts artifacts: 'dist/calculator.zip',
-                                 fingerprint: true
-            }
-        }
+stage('Package') {
+    steps {
+        sh '''
+            python3 - <<'PY'
+import os
+import zipfile
+
+files = [
+    f for f in os.listdir('.')
+    if f.endswith('.py') and not f.startswith('test_')
+]
+
+if not files:
+    raise Exception("No application Python files found in workspace")
+
+with zipfile.ZipFile('calculator.zip', 'w') as z:
+    for f in files:
+        z.write(f)
+
+print("Created calculator.zip containing:", files)
+PY
+            ls -lh calculator.zip
+        '''
+        archiveArtifacts artifacts: 'calculator.zip', fingerprint: true
+    }
+}
         stage('Deploy') {
             steps {
                 echo 'Tests passed. Ready for deployment!'
